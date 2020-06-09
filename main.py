@@ -1,33 +1,155 @@
-import pygame
+import pygame as pg
 from pygame.locals import *
 import sys
 
+BACKGROUND = (0,240,0)
+YELLOW = (255, 255, 0)
+class Ball: 
+    def __init__(self):
+        self.vx = 1
+        self.vy = 1
+        self.Cx = 400
+        self.Cy = 300
+        self.h = 20
+        self.w = 20
 
-pygame.init()
+        self.image = pg.Surface((self.w, self.h))
+        self.image.fill(YELLOW)
 
-pantalla = pygame.display.set_mode((600, 400))
-pygame.display.set_caption("Hola mundo")
+    @property
+    def posx(self):
+        return self.Cx - self.w // 2
+        
+    @property
+    def posy(self):
+        return self.Cy - self.h // 2
 
-rojo = 0
-d = 1
-while True:
-    for event in pygame.event.get():
-        if event.type == QUIT:
-            pygame.quit()
-            sys.exit()
+    def move(self, limSupX, limSupY):
+        if self.Cx >= limSupX or self.Cx <=0:
+            self.vx *= -1
 
-    rojo += d
+        if self.Cy >= limSupY or self.Cy <=0:
+            self.vy *= -1
+                
+        self.Cx += self.vx
+        self.Cy += self.vy
 
-    if rojo == 255:
-        d = -1
-    if rojo == 0:
-        d = 1
+    def comprobarChoque(self, something):
+        dx = abs(self.Cx - something.Cx)
+        dy = abs(self.Cy - something.Cy)
 
-    pantalla.fill((rojo,0,0))
-    pygame.display.flip()
+        if dx < (self.w + something.w) // 2 and dy < (self.h + something.h) // 2:
+            self.vx = -1   
 
-    pygame.time.delay(5)
-    
 
-   
 
+class Raquet:
+    def __init__(self, Cx):
+        self.vx = 0
+        self.vy = 0
+        self.w = 25
+        self.h = 100
+        self.Cx = Cx
+        self.Cy = 300
+
+        self.image = pg.Surface((self.w, self.h))
+        self.image.fill((255, 255, 255))
+
+    @property
+    def posx(self):
+        return self.Cx - self.w // 2
+        
+    @property
+    def posy(self):
+        return self.Cy - self.h // 2
+
+    def move(self, limSupX, limSupY): 
+        
+        self.Cx += self.vx
+        self.Cy += self.vy
+
+        #versión 1: la raqueta se detiene al llegar a los límites de la pantalla
+        if self.Cy <= self.h // 2:
+            self.Cy = self.h // 2  
+            
+        if self.Cy >= limSupY - self.h // 2:
+            self.Cy = limSupY - self.h // 2
+
+        '''
+        #versión 2: la raqueta sale por el lado contrario, no tiene fin.
+
+        if self.Cy >= limSupY or self.Cy <= 0:
+            self.Cy = limSupY - self.Cy
+        '''
+        
+
+class Game:
+    def __init__(self):
+        self.pantalla = pg.display.set_mode((800, 600))
+        self.pantalla.fill(BACKGROUND)
+        self.fondo = pg.image.load("./resources/images/fondo.jpg")
+        self.ball = Ball()
+        self.playerOne = Raquet(30)
+        self.playerTwo = Raquet(770)
+        pg.display.set_caption("Pong")
+
+    def main_loop(self):
+        game_over = False
+
+        while not game_over:
+            for event in pg.event.get():
+                if event.type == QUIT:
+                    game_over = True
+
+                '''
+                if event.type == KEYDOWN:
+                    if event.key == K_w:
+                        self.playerOne.vy = -5
+                        #self.playerOne.Cy -= self.playerOne.vy
+
+                    if event.key == K_s:
+                        self.playerOne.vy = 5
+                        #self.playerOne.Cy += self.playerOne.vy
+                '''
+            key_pressed = pg.key.get_pressed()
+            if key_pressed[K_w]:
+                self.playerOne.vy = -5
+                #self.playerOne.Cy -= self.playerOne.vy
+            elif key_pressed[K_s]:
+                self.playerOne.vy = 5
+                #self.playerOne.Cy += self.playerOne.vy
+            else:
+                self.playerOne.vy = 0
+
+            if key_pressed[K_UP]:
+                self.playerTwo.vy = -5
+            elif key_pressed[K_DOWN]:
+                self.playerTwo.vy = 5
+            else:
+                self.playerTwo.vy = 0
+
+
+            self.pantalla.blit(self.fondo, (0, 0))
+            self.pantalla.blit(self.ball.image, (self.ball.posx, self.ball.posy))
+            self.pantalla.blit(self.playerOne.image, (self.playerOne.posx, self.playerOne.posy))
+            self.pantalla.blit(self.playerTwo.image, (self.playerTwo.posx, self.playerTwo.posy))
+            
+            self.ball.move(800, 600)
+            self.playerOne.move(800, 600)
+            self.playerTwo.move(800, 600)
+
+            self.ball.comprobarChoque(self.playerOne)
+            self.ball.comprobarChoque(self.playerTwo)
+
+            pg.display.flip()
+
+    def quit(self):
+        pg.quit()
+        sys.exit()
+
+
+if __name__ == "__main__":
+    pg.init()
+    game = Game()
+    game.main_loop()
+    game.quit()
