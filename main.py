@@ -6,8 +6,8 @@ BACKGROUND = (0,240,0)
 YELLOW = (255, 255, 0)
 class Ball: 
     def __init__(self):
-        self.vx = 1
-        self.vy = 1
+        self.vx = 0.5
+        self.vy = 0.5
         self.Cx = 400
         self.Cy = 300
         self.h = 20
@@ -39,7 +39,9 @@ class Ball:
         dy = abs(self.Cy - something.Cy)
 
         if dx < (self.w + something.w) // 2 and dy < (self.h + something.h) // 2:
-            self.vx = -1   
+            self.vx = -1
+            self.Cx += self.vx
+            self.Cy += self.vy
 
 
 
@@ -93,53 +95,62 @@ class Game:
         self.playerTwo = Raquet(770)
         pg.display.set_caption("Pong")
 
+
+
+
+    def handlenEvent(self):
+        for event in pg.event.get():
+            if event.type == QUIT:
+                return True
+            '''
+            if event.type == KEYDOWN:
+                if event.key == K_w:
+                    self.playerOne.vy = -5
+                    #self.playerOne.Cy -= self.playerOne.vy
+
+                if event.key == K_s:
+                    self.playerOne.vy = 5
+                    #self.playerOne.Cy += self.playerOne.vy
+            '''
+        key_pressed = pg.key.get_pressed()
+        if key_pressed[K_w]:
+            self.playerOne.vy = -5
+            #self.playerOne.Cy -= self.playerOne.vy
+        elif key_pressed[K_s]:
+            self.playerOne.vy = 5
+            #self.playerOne.Cy += self.playerOne.vy
+        else:
+            self.playerOne.vy = 0
+
+        if key_pressed[K_UP]:
+            self.playerTwo.vy = -5
+        elif key_pressed[K_DOWN]:
+            self.playerTwo.vy = 5
+        else:
+            self.playerTwo.vy = 0
+
+        return False
+
+
     def main_loop(self):
         game_over = False
 
         while not game_over:
-            for event in pg.event.get():
-                if event.type == QUIT:
-                    game_over = True
+            game_over = self.handlenEvent()
 
-                '''
-                if event.type == KEYDOWN:
-                    if event.key == K_w:
-                        self.playerOne.vy = -5
-                        #self.playerOne.Cy -= self.playerOne.vy
-
-                    if event.key == K_s:
-                        self.playerOne.vy = 5
-                        #self.playerOne.Cy += self.playerOne.vy
-                '''
-            key_pressed = pg.key.get_pressed()
-            if key_pressed[K_w]:
-                self.playerOne.vy = -5
-                #self.playerOne.Cy -= self.playerOne.vy
-            elif key_pressed[K_s]:
-                self.playerOne.vy = 5
-                #self.playerOne.Cy += self.playerOne.vy
-            else:
-                self.playerOne.vy = 0
-
-            if key_pressed[K_UP]:
-                self.playerTwo.vy = -5
-            elif key_pressed[K_DOWN]:
-                self.playerTwo.vy = 5
-            else:
-                self.playerTwo.vy = 0
-
-
-            self.pantalla.blit(self.fondo, (0, 0))
-            self.pantalla.blit(self.ball.image, (self.ball.posx, self.ball.posy))
-            self.pantalla.blit(self.playerOne.image, (self.playerOne.posx, self.playerOne.posy))
-            self.pantalla.blit(self.playerTwo.image, (self.playerTwo.posx, self.playerTwo.posy))
-            
             self.ball.move(800, 600)
             self.playerOne.move(800, 600)
             self.playerTwo.move(800, 600)
 
             self.ball.comprobarChoque(self.playerOne)
             self.ball.comprobarChoque(self.playerTwo)
+
+
+            self.pantalla.blit(self.fondo, (0, 0))
+            self.pantalla.blit(self.ball.image, (self.ball.posx, self.ball.posy))
+            self.pantalla.blit(self.playerOne.image, (self.playerOne.posx, self.playerOne.posy))
+            self.pantalla.blit(self.playerTwo.image, (self.playerTwo.posx, self.playerTwo.posy))
+
 
             pg.display.flip()
 
