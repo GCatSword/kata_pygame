@@ -1,6 +1,7 @@
 import pygame as pg
 from pygame.locals import *
 import sys, random
+from sprites import *
 
 BACKGROUND = (50,50,50)
 YELLOW = (255, 255, 0)  
@@ -8,85 +9,6 @@ WHITE = (255, 255, 255)
 
 WIN_GAME_SCORE = 3
 
-class Ball: 
-    def __init__(self):
-        self.reset()
-        self.h = 20
-        self.w = 20
-
-        self.image = pg.Surface((self.w, self.h))
-        self.image.fill(YELLOW)
-        self.ping = pg.mixer.Sound('./resources/sounds/ping.wav')
-        self.lost_point = pg.mixer.Sound('./resources/sounds/lost-point.wav')
-
-    @property
-    def posx(self):
-        return self.Cx - self.w // 2
-        
-    @property
-    def posy(self):
-        return self.Cy - self.h // 2
-
-    def move(self, limSupX, limSupY):
-        if self.Cx >= limSupX or self.Cx <=0:
-            self.vx = 0
-            self.vy = 0
-            self.lost_point.play()
-
-        if self.Cy >= limSupY or self.Cy <=0:
-            self.vy *= -1
-            self.ping.play()
-                
-        self.Cx += self.vx
-        self.Cy += self.vy
-
-    def comprobarChoque(self, something):
-        dx = abs(self.Cx - something.Cx)
-        dy = abs(self.Cy - something.Cy)
-
-        if dx < (self.w + something.w)//2 and dy < (self.h +something.h) // 2:
-            self.vx *= -1
-            self.Cx += self.vx
-            self.Cy += self.vy
-            self.ping.play()
-
-    def reset(self):
-        self.vx = random.choice([-1, -0.5, 0.5, 1])
-        self.vy = random.choice([-1, -0.5, 0.5, 1]) 
-        self.Cx = 400
-        self.Cy = 300
-
-class Raquet:
-    def __init__(self, Cx):
-        self.vx = 0
-        self.vy = 0
-        self.w = 25
-        self.h = 100
-        self.Cx = Cx
-        self.Cy = 300
-
-        self.image = pg.Surface((self.w, self.h))
-        self.image.fill((255, 255, 255))
-
-    @property
-    def posx(self):
-        return self.Cx - self.w // 2
-        
-    @property
-    def posy(self):
-        return self.Cy - self.h // 2
-
-    def move(self, limSupX, limSupY):
-        self.Cx += self.vx
-        self.Cy += self.vy
-
-        if self.Cy < self.h //2:
-            self.Cy = self.h // 2
-
-        if self.Cy > limSupY - self.h // 2:
-            self.Cy = limSupY - self.h // 2
-
-        
 
 class Game:
     def __init__(self):
@@ -94,8 +16,16 @@ class Game:
         self.pantalla.fill(BACKGROUND)
         self.fondo = pg.image.load("./resources/images/fondo.jpg")
         self.ball = Ball()
+
         self.playerOne = Raquet(30)
         self.playerTwo = Raquet(770)
+        self.playersGroup = pg.sprite.Group()
+        self.playersGroup.add(self.playerOne)
+        self.playersGroup.add(self.playerTwo)
+
+        self.allSprites = pg.sprite.Group()
+        self.allSprites.add(self.ball)
+        self.allSprites.add(self.playersGroup)
 
         self.status = 'Partida'
 
@@ -117,25 +47,32 @@ class Game:
         for event in pg.event.get():
             if event.type == QUIT:
                 self.quit()
-            '''
+            
             if event.type == KEYDOWN:
                 if event.key == K_UP:
-                    self.playerOne.vy = -5
+                    self.playerTwo.vy = -5
+
                 if event.key == K_DOWN:
+                    self.playerTwo.vy = 5
+
+                if event.key == K_w:
+                    self.playerOne.vy = -5
+
+                if event.key == K_z:
                     self.playerOne.vy = 5
-            '''
+            
         key_pressed = pg.key.get_pressed()
         if key_pressed[K_UP]:
-            self.playerTwo.vy = - 2
+            self.playerTwo.vy -= 1
         elif key_pressed[K_DOWN]:
-            self.playerTwo.vy = 2
+            self.playerTwo.vy += 1
         else:
             self.playerTwo.vy = 0
 
         if key_pressed[K_w]:
-            self.playerOne.vy = - 2
-        elif key_pressed[K_s]:
-            self.playerOne.vy = 2
+            self.playerOne.vy -= 1
+        elif key_pressed[K_z]:
+            self.playerOne.vy += 1
         else:
             self.playerOne.vy = 0
         
@@ -151,17 +88,15 @@ class Game:
         while not game_over:
             game_over = self.handlenEvent()
 
-            self.ball.move(800, 600)
-            self.playerOne.move(800, 600)
-            self.playerTwo.move(800, 600)
-            self.ball.comprobarChoque(self.playerOne)
-            self.ball.comprobarChoque(self.playerTwo)
+            self.allSprites.update(800, 600)
+
+            self.ball.comprobarChoque(self.playersGroup)
 
             if self.ball.vx == 0 and self.ball.vy == 0:
-                if self.ball.Cx >=800:
+                if self.ball.rect.centerx >=800:
                     self.scoreOne += 1
                     self.marcadorOne = self.font.render(str(self.scoreOne), True, WHITE)
-                if self.ball.Cx <= 0:
+                if self.ball.rect.centerx <= 0:
                     self.scoreTwo += 1
                     self.marcadorTwo = self.font.render(str(self.scoreTwo), True, WHITE)
 
@@ -171,9 +106,7 @@ class Game:
                 self.ball.reset()
 
             self.pantalla.blit(self.fondo, (0, 0))
-            self.pantalla.blit(self.ball.image, (self.ball.posx, self.ball.posy))
-            self.pantalla.blit(self.playerOne.image, (self.playerOne.posx, self.playerOne.posy))
-            self.pantalla.blit(self.playerTwo.image, (self.playerTwo.posx, self.playerTwo.posy))
+            self.allSprites.draw(self.pantalla)
             self.pantalla.blit(self.marcadorOne, (30, 10))
             self.pantalla.blit(self.marcadorTwo, (740, 10))
 
@@ -200,11 +133,33 @@ class Game:
 
         self.status = 'Partida'
 
+    def bucle_pregunta(self):
+        pregunta_resuelta = False
+        while not pregunta_resuelta:
+            for event in pg.event.get():
+                if event.type == QUIT:
+                    self.quit()
+
+                if event.type == KEYDOWN:
+                    if event.key == K_r:
+                        pregunta_resuelta = True
+
+            self.pantalla.fill(DARK_GREY)
+            self.pantalla.blit(self.ball.image, (self.ball.posx, self.ball.posy))
+            pg.display.flip()
+
+        self.status = 'Partida'
+
+                    
+
+
 
     def main_loop(self):
 
         while True:
-            if self.status == 'Partida':
+            if self.status == 'Pregunta':
+                self.bucle_pregunta()
+            elif self.status == 'Partida':
                 self.bucle_partida()
             else:
                 self.bucle_inicio()
